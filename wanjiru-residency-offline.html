@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wanjiru Residency</title>
+<style>
+:root{--bg:#eef3f8;--card:rgba(255,255,255,.86);--tx:#12202e;--mut:#5d6f82;--ac:#0b8f86;--onac:#fff;--bad:#d6455d;--bd:#d5e0ea;--glow:rgba(11,143,134,.16);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a1018;--card:rgba(20,30,44,.74);--tx:#e6eef7;--mut:#8da0b5;--ac:#2fe0c8;--onac:#04141a;--bad:#ff6b81;--bd:#22344a;--glow:rgba(47,224,200,.2);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0a1018;--card:rgba(20,30,44,.74);--tx:#e6eef7;--mut:#8da0b5;--ac:#2fe0c8;--onac:#04141a;--bad:#ff6b81;--bd:#22344a;--glow:rgba(47,224,200,.2);color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 420px at 90% -8%,var(--glow),transparent),var(--bg);background-attachment:fixed;color:var(--tx);font:15px/1.45 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;letter-spacing:.1px}
+main{max-width:900px;margin:0 auto;padding:14px}
+h1{font-size:21px;margin:0;font-weight:700;background:linear-gradient(90deg,var(--tx),var(--ac));-webkit-background-clip:text;background-clip:text;color:transparent}h2{font-size:12px;margin:22px 0 10px;text-transform:uppercase;letter-spacing:1.6px;color:var(--mut);font-weight:600}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.mut{color:var(--mut);font-size:13px}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin:12px 0}
+.tabs button,.btn{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:999px;padding:8px 16px;font:inherit;cursor:pointer;white-space:nowrap;transition:.2s;backdrop-filter:blur(8px)}.tabs button:hover,.btn:hover{border-color:var(--ac);box-shadow:0 0 14px var(--glow)}
+.tabs .on,.btn.p{background:linear-gradient(135deg,var(--ac),#2a7de1);border-color:transparent;color:var(--onac);font-weight:600;box-shadow:0 0 18px var(--glow)}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(min-width:600px){.stats{grid-template-columns:repeat(4,1fr)}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px;backdrop-filter:blur(10px);box-shadow:0 6px 24px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.06)}
+.card b{display:block;font-size:18px;font-weight:650;font-variant-numeric:tabular-nums}
+.rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.room{border-left:4px solid var(--bad);box-shadow:0 0 16px rgba(255,107,129,.12)}.room.paid{border-left-color:var(--ac);box-shadow:0 0 16px var(--glow)}.room.me{outline:2px solid var(--ac)}
+.tag{font-size:12px;font-weight:600;color:var(--bad)}.paid .tag{color:var(--ac)}
+label{display:block;font-size:13px;color:var(--mut);margin-top:8px}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:transparent;color:var(--tx);font:inherit;transition:.2s}input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 3px var(--glow)}
+.row{display:grid;gap:8px}@media(min-width:600px){.row{grid-template-columns:1fr 1fr}}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:7px 4px;border-bottom:1px solid var(--bd);text-align:left}
+.scroll{overflow-x:auto}
+#toast{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));background:linear-gradient(135deg,var(--ac),#2a7de1);color:var(--onac);padding:14px;border-radius:14px;box-shadow:0 8px 30px var(--glow);font-weight:600;text-align:center;z-index:20}
+details{margin-bottom:8px}summary{cursor:pointer;font-weight:600}
+@media print{.tabs,.top,#toast,.noprint{display:none!important}body{background:#fff;color:#000}.card{border:0}main{padding:0}}</style></head><body><main>
+<div class="top"><div><h1>◈ Wanjiru Residency</h1><div class="mut" id="who">Loading…</div></div><div><button class="btn" id="bk">Backup</button> <button class="btn" id="rs">Restore</button> <button class="btn" id="lk">Lock</button><input type="file" id="rf" accept=".json" hidden></div>
+</div>
+<div class="tabs" id="tabs"></div><div id="app"><p class="mut">Loading…</p></div></main>
+<div id="toast" hidden></div>
+<script>
+/* Offline version: no Claude connection. Data is stored in this browser (localStorage). Use Backup often. */
+(function(){
+const KEY='wr_db',PK='wr_pins';let S={};try{S=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){alert('Could not save data in this browser.')}};
+const L=[],DL=[],col=c=>S[c]||(S[c]={}),cl=o=>JSON.parse(JSON.stringify(o));
+const snap=(c,ch)=>({docs:Object.keys(col(c)).map(id=>({id,data:()=>cl(col(c)[id])})),docChanges:()=>ch||[]});
+const fire=(c,ch)=>{L.filter(l=>l.c===c).forEach(l=>l.f(snap(c,ch)));DL.filter(l=>l.p.split('/')[0]===c).forEach(l=>l.f(dsnap(l.p)))};
+const dsnap=p=>{const[c,id]=p.split('/'),d=col(c)[id];return{data:()=>d?cl(d):undefined}};
+const nid=()=>Math.random().toString(36).slice(2,12)+Date.now().toString(36);
+const db={
+ collection:c=>({add:async o=>{const id=nid();col(c)[id]=cl(o);save();fire(c,[{type:'added',doc:{id,data:()=>cl(o),metadata:{}}}])},onSnapshot:f=>{L.push({c,f});setTimeout(()=>f(snap(c)),0)}}),
+ doc:p=>{const[c,id]=p.split('/');return{set:async d=>{col(c)[id]=cl(d);save();fire(c)},delete:async()=>{delete col(c)[id];save();fire(c)},onSnapshot:f=>{DL.push({p,f});setTimeout(()=>f(dsnap(p)),0)}}}
+};
+const h=s=>{let x=5381;for(const c of s)x=(x*33^c.charCodeAt(0))>>>0;return x.toString(36)};
+function lock(){return new Promise(res=>{
+ const P=JSON.parse(localStorage.getItem(PK)||'{}'),o=document.createElement('div');
+ o.style.cssText='position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px';
+ const draw=()=>{const n=document.getElementById('lu')?document.getElementById('lu').value:'Admin 1',has=!!P[n];
+  o.innerHTML=`<div class="card" style="width:100%;max-width:340px"><h1 style="margin-bottom:12px">◈ Wanjiru Residency</h1><label>Who are you?<select id="lu"><option>Admin 1</option><option>Admin 2</option></select></label><label>${has?'Enter your PIN':'First time: create a PIN (4+ digits)'}<input id="lp" type="password" inputmode="numeric"></label>${has?'':'<label>Repeat PIN<input id="lp2" type="password" inputmode="numeric"></label>'}<p><button class="btn p" id="lg" style="width:100%">${has?'Unlock':'Create PIN & enter'}</button></p><p class="mut" id="le"></p></div>`;
+  document.getElementById('lu').value=n;document.getElementById('lu').onchange=draw;
+  document.getElementById('lg').onclick=()=>{const u=document.getElementById('lu').value,p=document.getElementById('lp').value,e=document.getElementById('le');
+   if(P[u]){if(P[u]!==h(p+u))return e.textContent='Wrong PIN.'}
+   else{if(p.length<4)return e.textContent='Use at least 4 digits.';if(p!==document.getElementById('lp2').value)return e.textContent='PINs do not match.';P[u]=h(p+u);localStorage.setItem(PK,JSON.stringify(P))}
+   window._who=u;o.remove();res({canEdit:()=>true,id:async()=>u==='Admin 1'?'admin1':'admin2'})}};
+ document.body.appendChild(o);draw()})}
+window.claude={use:async n=>n==='user'?lock():db};
+const $=s=>document.querySelector(s);
+$('#lk').onclick=()=>location.reload();
+$('#bk').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='wanjiru-residency-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click()};
+$('#rs').onclick=()=>$('#rf').click();
+$('#rf').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(typeof d!=='object')throw 0;if(!confirm('Replace ALL current data with this backup?'))return;S=d;save();location.reload()}catch(x){alert('That file is not a valid backup.')}};r.readAsText(f)};
+})();
+</script>
+<script>
+const $=s=>document.querySelector(s),E=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const K=n=>'KES '+Number(n||0).toLocaleString();const bl=b=>b>0?'Arrears '+K(b):b<0?'Overpayment '+K(-b):'Cleared';
+const bs=b=>`<span style="color:${b>0?'var(--bad)':b<0?'var(--ac)':'var(--mut)'};font-weight:600">${bl(b)}</span>`;
+const sure=(k,t)=>{if(armed===k){armed='';return true}armed=k;t.textContent='Tap again to confirm';setTimeout(()=>{armed=''},6000);return false};
+function instSum(){const el=$('#inst');if(!el)return;const i=$('#pr').value,r=rooms[i]||{};if(!r.tenant){el.innerHTML='<span class="mut">This room is vacant. Add the tenant first under Tenants.</span>';return}const mo=($('#pd').value||month).slice(0,7),ep=pays.find(p=>p.id===editP),old=ep&&ep.room===i?+ep.amount:0,b=bal(i,mo),amt=+$('#pa').value||0,c=chg(i,mo);el.innerHTML=`<b style="font-size:15px">${nm(i)} (${E(r.tenant)})</b><span class="mut">Bill for ${mo}: ${K(c.t)} · paid this month: ${K(paid(i,mo))}</span><br>Total owed now: ${bs(b)}<br>${amt?`After this payment: ${bs(b-amt+old)}`:''}`}
+const ER=()=>+cfg.er||25,WR=()=>+cfg.wr||150,has=v=>v!==''&&v!=null;
+function prevD(i,k,mo){return Object.values(rd).filter(x=>x.room===i&&x.month<mo&&has(x[k])).sort((a,b)=>a.month<b.month?1:-1)[0]}
+function units(i,k,mo){const d=rd[i+'_'+mo];if(!d||!has(d[k]))return 0;const p=prevD(i,k,mo),b=p?p[k]:d[k+'p'];return has(b)?Math.round(Math.max(0,d[k]-b)*100)/100:0}
+function chg(i,mo){const rt=+(rooms[i]||{}).rent||0,e=+i.slice(1)>=8?units(i,'e',mo)*ER():0,w=units(i,'w',mo)*WR();return{r:rt,e,w,t:rt+e+w}}
+function bal(i,upto){const r=rooms[i];if(!r?.tenant)return 0;const ps=pays.filter(p=>p.room===i&&p.month<=upto);const st=[(kyc[i]?.moveIn||'').slice(0,7),ps.map(p=>p.month).sort()[0]].filter(Boolean).sort()[0]||upto;let y=+st.slice(0,4),m=+st.slice(5,7),b=0;for(let c=0;c<120;c++){const mo=y+'-'+String(m).padStart(2,'0');if(mo>upto)break;b+=chg(i,mo).t-paid(i,mo);if(++m>12){m=1;y++}}return b}
+let db,user,uid,admin=false,realAdmin=false,rooms={},rd={},editP='',armed='',pays=[],kyc={},prof={},cfg={},tab='dash',pend=false,first=true;
+let month=new Date().toISOString().slice(0,7),mine='';
+
+const ids=[...Array(17)].map((_,i)=>'r'+(i+1)),nm=id=>'Room '+id.slice(1);
+function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,8000)}
+const paid=(id,m)=>pays.filter(p=>p.room===id&&p.month===m).reduce((a,p)=>a+Number(p.amount),0);
+function render(){
+ if(document.activeElement?.matches('#app input:not(#mo),#app textarea,#app select:not(#sr)')){pend=true;return}
+ pend=false;if(!admin){$('#tabs').innerHTML='';$('#who').textContent='Private';$('#app').innerHTML='<p class="mut">This page is for the owner and admins only.</p>';return}
+ const tabs=[['dash','Dashboard'],['pays','Payments']].concat(admin?[['rec','Record payment'],['mtr','Meter readings'],['ten','Tenants'],['stm','Statements'],['me','My details'],['set','Settings']]:[]);
+ $('#tabs').innerHTML=tabs.map(t=>`<button data-t="${t[0]}" class="${t[0]===tab?'on':''}">${t[1]}</button>`).join('');
+ $('#who').textContent='Signed in: '+(window._who||'Admin');
+ 
+ const A=$('#app');
+ if(!Object.keys(rooms).length){A.innerHTML=admin?'<div class="card"><p>No rooms yet.</p><button class="btn p" data-a="seed">Set up 17 rooms</button></div>':'<p class="mut">Rooms not set up yet.</p>';return}
+ const mo=`<label>Month<input type="month" id="mo" value="${month}"></label>`;
+ if(tab==='dash'){
+  const exp=ids.reduce((a,i)=>a+(rooms[i]?.tenant?chg(i,month).t:0),0),col=ids.reduce((a,i)=>a+paid(i,month),0);
+  const np=ids.filter(i=>rooms[i]?.tenant&&paid(i,month)>=chg(i,month).t).length,occ=ids.filter(i=>rooms[i]?.tenant).length;
+  const m=mine&&rooms[mine];
+  A.innerHTML=mo+(m?`<div class="card" style="margin-top:10px"><b>${nm(mine)} – ${E(m.tenant||'Vacant')}</b>Rent ${K(m.rent)} · Paid ${K(paid(mine,month))} · ${paid(mine,month)>m.rent?'Overpayment '+K(paid(mine,month)-m.rent):'Arrears '+K(m.rent-paid(mine,month))}</div>`:'')+
+  `<h2>Summary</h2><div class="stats"><div class="card">Collected<b>${K(col)}</b></div><div class="card">Expected<b>${K(exp)}</b></div><div class="card">Paid up<b>${np}/${occ}</b></div><div class="card">Arrears<b>${K(ids.reduce((a,i)=>a+(rooms[i]?.tenant?Math.max(0,chg(i,month).t-paid(i,month)):0),0))}</b></div><div class="card">Overpaid<b>${K(ids.reduce((a,i)=>a+(rooms[i]?.tenant?Math.max(0,paid(i,month)-chg(i,month).t):0),0))}</b></div></div>
+  <h2>Rooms</h2><div class="rooms">${ids.map(i=>{const r=rooms[i]||{},p=paid(i,month),ok=r.tenant&&p>=r.rent;return `<div class="card room ${r.tenant&&bal(i,month)<=0?'paid':''} ${i===mine?'me':''}"><b style="font-size:16px">${nm(i)} (${E(r.tenant||'Vacant')})</b><span class="mut">${r.tenant?bs(bal(i,month)):'&nbsp;'}</span></div>`}).join('')}</div>`}
+ else if(tab==='pays'){
+  const L=pays.filter(p=>p.month===month&&(admin||!mine||p.room===mine||true));
+  A.innerHTML=mo+`<h2>Payments for ${month}</h2><div class="card scroll"><table><tr><th>Date</th><th>Room</th><th>Amount</th><th>Method</th><th>Ref</th>${admin?'<th></th>':''}</tr>${L.map(p=>`<tr><td>${E(p.date)}</td><td>${nm(p.room)}</td><td>${K(p.amount)}</td><td>${E(p.method)}</td><td>${E(p.ref)}</td>${admin?`<td><a href="#" data-a="edp" data-id="${p.id}">✎</a> &nbsp; <a href="#" data-a="del" data-id="${p.id}">✕</a></td>`:''}</tr>`).join('')||'<tr><td class="mut">No payments yet</td></tr>'}</table></div>`}
+ else if(tab==='rec'&&admin){const ep=pays.find(p=>p.id===editP)||{};
+  A.innerHTML=`<div class="card"><h2 style="margin-top:0">${ep.id?'Edit payment':'Record a payment'}</h2><p class="mut">Copy the M-Pesa / Equity confirmation code from the SMS. Part-payments are fine: record each amount the tenant gives and they add up against the bill (rent + water + electricity).</p>
+  <div class="row"><div><label>Room<select id="pr">${ids.map(i=>`<option value="${i}" ${i===ep.room?'selected':''}>${nm(i)} – ${E(rooms[i]?.tenant||'Vacant')}</option>`).join('')}</select></label></div>
+  <div><label>Amount (KES)<input id="pa" type="number" inputmode="numeric" value="${E(ep.amount)}"></label></div>
+  <div><label>Method<select id="pm">${['Pochi la Biashara','Equity Bank','Cash'].map(x=>`<option ${x===ep.method?'selected':''}>${x}</option>`).join('')}</select></label></div>
+  <div><label>Confirmation code<input id="pc" placeholder="e.g. SJK4XXXXXX" value="${E(ep.ref)}"></label></div>
+  <div><label>Date<input id="pd" type="date" value="${E(ep.date||new Date().toISOString().slice(0,10))}"></label></div></div>
+  <div id="inst" class="card" style="margin-top:10px"></div><p><button class="btn p" data-a="pay">${ep.id?'Update payment':'Save payment'}</button></p></div>`}
+ else if(tab==='ten'&&admin){
+  A.innerHTML=`<p class="mut">${ids.filter(i=>rooms[i]?.tenant).length} occupied · ${ids.filter(i=>!rooms[i]?.tenant).length} vacant</p>`+ids.map(i=>{const r=rooms[i]||{},k=kyc[i]||{};return `<details class="card"><summary>${nm(i)} – ${E(r.tenant||'Vacant')}</summary>
+  <div class="row"><div><label>Status<select id="s-${i}"><option value="o" ${r.tenant?'selected':''}>Occupied</option><option value="v" ${r.tenant?'':'selected'}>Vacant</option></select></label></div><div><label>Tenant name<input id="t-${i}" value="${E(r.tenant)}"></label></div><div><label>Monthly rent<input id="r-${i}" type="number" value="${E(r.rent)}"></label></div>
+  <div><label>Phone<input id="p-${i}" value="${E(k.phone)}"></label></div><div><label>ID number<input id="n-${i}" value="${E(k.idNo)}"></label></div>
+  <div><label>Deposit paid<input id="d-${i}" type="number" value="${E(k.deposit)}"></label></div><div><label>Move-in date<input id="m-${i}" type="date" value="${E(k.moveIn)}"></label></div></div>
+  <label>Notes<textarea id="o-${i}" rows="2">${E(k.notes)}</textarea></label><p><button class="btn p" data-a="ten" data-id="${i}">Save ${nm(i)}</button> <button class="btn" data-a="clr" data-id="${i}" style="color:var(--bad)">Delete all data (moved out)</button></p></details>`}).join('')}
+ else if(tab==='me'&&admin){
+  const p=prof[uid]||{};
+  A.innerHTML=`<div class="card"><h2 style="margin-top:0">My admin details</h2><p class="mut">Only admins can see this.</p><div class="row">
+  ${[['name','Full name'],['idNo','ID number'],['phone','Phone'],['email','Email'],['role','Role (owner, caretaker…)'],['kra','KRA PIN'],['address','Address']].map(f=>`<div><label>${f[1]}<input id="a-${f[0]}" value="${E(p[f[0]])}"></label></div>`).join('')}</div>
+  <p><button class="btn p" data-a="prof">Save details</button></p></div>
+  <h2>Other admins</h2>${Object.entries(prof).filter(e=>e[0]!==uid).map(e=>`<div class="card">${E(e[1].name)} · ${E(e[1].role)} · ${E(e[1].phone)}</div>`).join('')||'<p class="mut">None yet</p>'}`}
+ else if(tab==='mtr'&&admin){
+  A.innerHTML=mo+`<p class="mut">Enter this month’s meter readings. For a room’s first reading, type its previous reading in the second box so the units can be charged. Electricity KES ${ER()}/unit (rooms 8–17), water KES ${WR()}/unit (rooms 1–17). Charges are added to the tenant’s rent bill.</p><div class="card scroll"><table><tr><th>Room</th><th>Water now</th><th>Units</th><th>KES</th><th>Elec now</th><th>Units</th><th>KES</th></tr>${ids.map(i=>{const d=rd[i+'_'+month]||{},el=+i.slice(1)>=8,pw=prevD(i,'w',month),pe=prevD(i,'e',month);return `<tr><td>${nm(i)}<br><span class="mut">${E(rooms[i]?.tenant||'Vacant')}</span></td><td><input id="mw-${i}" type="number" step="any" value="${E(d.w)}" placeholder="Current reading" style="width:110px">${pw?`<br><span class="mut">Previous: ${pw.w}</span>`:`<br><input id="mwp-${i}" type="number" step="any" value="${E(d.wp)}" placeholder="Previous reading" style="width:110px;margin-top:4px">`}</td><td>${units(i,'w',month)}</td><td>${K(units(i,'w',month)*WR())}</td>${el?`<td><input id="me-${i}" type="number" step="any" value="${E(d.e)}" placeholder="Current reading" style="width:110px">${pe?`<br><span class="mut">Previous: ${pe.e}</span>`:`<br><input id="mep-${i}" type="number" step="any" value="${E(d.ep)}" placeholder="Previous reading" style="width:110px;margin-top:4px">`}</td><td>${units(i,'e',month)}</td><td>${K(units(i,'e',month)*ER())}</td>`:'<td colspan="3" class="mut">No electricity</td>'}</tr>`}).join('')}</table></div><p><button class="btn p" data-a="mtr">Save readings</button></p>`}
+ else if(tab==='stm'&&admin){
+  const r=rooms[sr]||{},k=kyc[sr]||{},rp=pays.filter(p=>p.room===sr).sort((a,b)=>a.ts-b.ts),now=new Date().toISOString().slice(0,7);
+  const st=[(k.moveIn||'').slice(0,7),rp[0]?.month].filter(Boolean).sort()[0]||now;
+  let y=+st.slice(0,4),m=+st.slice(5,7),bal=0,tc=0,tp=0,rows='';
+  for(let c=0;c<120;c++){const mo=y+'-'+String(m).padStart(2,'0');if(mo>now)break;const cc=chg(sr,mo),ch=cc.t,p=paid(sr,mo);bal+=ch-p;tc+=ch;tp+=p;rows+=`<tr><td>${mo}</td><td>${K(cc.r)}</td><td>${K(cc.e)}</td><td>${K(cc.w)}</td><td>${K(ch)}</td><td>${K(p)}</td><td>${bl(bal)}</td></tr>`;if(++m>12){m=1;y++}}
+  A.innerHTML=`<div class="noprint card"><label>Room<select id="sr">${ids.map(i=>`<option value="${i}" ${i===sr?'selected':''}>${nm(i)} – ${E(rooms[i]?.tenant||'Vacant')}</option>`).join('')}</select></label><p><button class="btn p" data-a="print">🖨 Print statement</button></p><p class="mut">Opens the print window. Choose Save as PDF if you want to share it on WhatsApp.</p></div>
+  <div class="card" id="stmt" style="margin-top:10px"><h2 style="margin-top:0">Rent Statement</h2><p>Date: ${new Date().toLocaleDateString('en-GB')}<br>${nm(sr)} · <b>${E(r.tenant||'Vacant')}</b><br>ID: ${E(k.idNo||'-')} · Phone: ${E(k.phone||'-')}<br>Monthly rent: ${K(r.rent)}</p>
+  <div class="scroll"><table><tr><th>Month</th><th>Rent</th><th>Elec</th><th>Water</th><th>Total</th><th>Paid</th><th>Balance</th></tr>${rows}<tr><th>Total</th><th></th><th></th><th></th><th>${K(tc)}</th><th>${K(tp)}</th><th>${bl(bal)}</th></tr></table></div>
+  <h2>Payments received</h2><div class="scroll"><table><tr><th>Date</th><th>Method</th><th>Ref</th><th>Amount</th></tr>${rp.map(p=>`<tr><td>${E(p.date)}</td><td>${E(p.method)}</td><td>${E(p.ref)}</td><td>${K(p.amount)}</td></tr>`).join('')||'<tr><td class="mut">None</td></tr>'}</table></div>
+  <p><b>Status: ${bl(bal)}</b></p></div>`}
+ else if(tab==='set'&&admin){
+  A.innerHTML=`<div class="card"><h2 style="margin-top:0">Payment instructions</h2><p class="mut">Shown to tenants on the dashboard.</p>
+  <label>Pochi la Biashara number<input id="s-pochi" value="${E(cfg.pochi)}"></label><label>Equity Bank (Paybill / account)<input id="s-eq" value="${E(cfg.eq)}"></label>
+  <label>Electricity rate per unit (KES)<input id="s-er" type="number" value="${E(cfg.er||25)}"></label><label>Water rate per unit (KES)<input id="s-wr" type="number" value="${E(cfg.wr||150)}"></label><label>Rent due day of month<input id="s-due" type="number" value="${E(cfg.due||5)}"></label><label>Thank-you message<input id="s-ty" value="${E(cfg.ty||'Thank you for your payment!')}"></label>
+  <p><button class="btn p" data-a="cfg">Save</button></p></div>`}
+ if(tab==='rec')instSum();
+ if(tab==='dash'&&(cfg.pochi||cfg.eq))A.insertAdjacentHTML('beforeend',`<h2>How to pay</h2><div class="card">${cfg.pochi?'Pochi la Biashara: <b>'+E(cfg.pochi)+'</b><br>':''}${cfg.eq?'Equity Bank: <b>'+E(cfg.eq)+'</b><br>':''}<span class="mut">Rent due by day ${E(cfg.due||5)} of each month.</span></div>`);
+}
+document.addEventListener('click',async e=>{
+ const t=e.target.closest('[data-t],[data-a]');if(!t)return;e.preventDefault();
+ if(t.dataset.t){tab=t.dataset.t;editP='';render();return}
+ const a=t.dataset.a,v=id=>$('#'+id)?.value||'';
+ try{
+ if(a==='print'){window.print();return}
+ if(a==='mtr'){for(const i of ids){const w=v('mw-'+i),e=v('me-'+i),wp=v('mwp-'+i),ep=v('mep-'+i);if(w===''&&e===''){if(rd[i+'_'+month])await db.doc('readings/'+i+'_'+month).delete();continue}await db.doc('readings/'+i+'_'+month).set({room:i,month,w:w===''?'':+w,e:e===''?'':+e,wp:wp===''?'':+wp,ep:ep===''?'':+ep})}toast('Readings saved for '+month)}
+ if(a==='seed')for(const i of ids)await db.doc('rooms/'+i).set({tenant:'',rent:0});
+ if(a==='del'){if(!sure('p'+t.dataset.id,t))return;await db.doc('payments/'+t.dataset.id).delete();toast('Payment deleted')}
+ if(a==='edp'){editP=t.dataset.id;tab='rec';render();return}
+ if(a==='clr'){const i=t.dataset.id;if(!sure('c'+i,t))return;const was=rooms[i]?.tenant;for(const p of pays.filter(p=>p.room===i))await db.doc('payments/'+p.id).delete();for(const k of Object.keys(rd).filter(k=>rd[k].room===i))await db.doc('readings/'+k).delete();await db.doc('rooms/'+i).set({tenant:'',rent:3500});try{await db.doc('kyc/'+i).delete()}catch(x){}toast(nm(i)+' cleared'+(was?' ('+was+' moved out)':'')+'. The room is now vacant.')}
+ if(a==='pay'){if(!(+v('pa')>0))return toast('Enter an amount');const d=v('pd');
+  const o={room:v('pr'),amount:+v('pa'),method:v('pm'),ref:v('pc').trim().toUpperCase(),date:d,month:d.slice(0,7)};if(editP)await db.doc('payments/'+editP).set({...o,ts:pays.find(p=>p.id===editP)?.ts||Date.now()});else await db.collection('payments').add({...o,ts:Date.now()});toast(editP?'Payment updated':'Payment saved');editP='';tab='pays';month=d.slice(0,7)}
+ if(a==='ten'){const i=t.dataset.id;
+  const vac=v('s-'+i)==='v',nw=vac?'':v('t-'+i).trim(),was=rooms[i]?.tenant||'';if(!vac&&!nw)return toast('Enter the tenant name, or set the room to Vacant');await db.doc('rooms/'+i).set({tenant:nw,rent:+v('r-'+i)||0});
+  await db.doc('kyc/'+i).set(vac?{phone:'',idNo:'',deposit:0,moveIn:'',notes:''}:{phone:v('p-'+i),idNo:v('n-'+i),deposit:+v('d-'+i)||0,moveIn:v('m-'+i),notes:v('o-'+i)});toast(!was&&nw?`✅ ${nw} has been added to ${nm(i)}. The room is no longer vacant.`:was&&!nw?`${was} was removed from ${nm(i)}. The room is now vacant.`:'Saved')}
+ if(a==='prof'){const o={};['name','idNo','phone','email','role','kra','address'].forEach(f=>o[f]=v('a-'+f));await db.doc('adminprofiles/'+uid).set(o);toast('Saved')}
+ if(a==='cfg'){await db.doc('settings/main').set({pochi:v('s-pochi'),eq:v('s-eq'),due:+v('s-due')||5,er:+v('s-er')||25,wr:+v('s-wr')||150,ty:v('s-ty')});toast('Saved')}
+ }catch(x){toast('Could not save: '+(x.message||x.code||'error'))}
+ render();
+});
+let sr='r1';document.addEventListener('change',e=>{if(e.target.id==='sr'){sr=e.target.value;render()}if(e.target.id==='mo'){month=e.target.value;render()}});
+document.addEventListener('input',e=>{if(['pr','pa','pd'].includes(e.target.id))instSum()});
+document.addEventListener('focusout',()=>setTimeout(()=>{if(pend)render()},150));
+(async()=>{
+ const tm=0;
+ user=await claude.use('user');db=await claude.use('db');
+ if(!db){$('#app').innerHTML='<p class="mut">Please sign in to Claude to view this page.</p>';return}
+ admin=realAdmin=user?.canEdit()??false;uid=user?await user.id():'';
+ const sub=(p,f)=>db.collection(p).onSnapshot(s=>{clearTimeout(tm);f(s);render()},e=>{clearTimeout(tm);toast('Load error: '+e.code)});
+ const map=(s,o)=>{for(const k in o)delete o[k];s.docs.forEach(d=>o[d.id]=d.data())};
+ sub('rooms',s=>{map(s,rooms);for(const k in rooms)rooms[k].rent=+rooms[k].rent||3500});
+ sub('payments',s=>{pays=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.ts-a.ts);
+  if(!first)s.docChanges().filter(c=>c.type==='added'&&!c.doc.metadata?.hasPendingWrites).forEach(c=>{const p=c.doc.data();if(admin||p.room===mine)toast(`✅ ${cfg.ty||'Thank you for your payment!'} ${K(p.amount)} received for ${nm(p.room)} (${p.ref||p.method}).`)});first=false});
+ db.doc('settings/main').onSnapshot(s=>{cfg=s.data()||{};render()});
+ if(admin){sub('kyc',s=>map(s,kyc));sub('readings',s=>map(s,rd));sub('adminprofiles',s=>map(s,prof))}
+})();
+</script></body></html>
